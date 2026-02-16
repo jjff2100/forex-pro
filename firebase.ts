@@ -5,12 +5,12 @@ import { getFirestore } from "https://esm.sh/firebase/firestore";
 
 // ملاحظة: استبدل هذه القيم ببيانات مشروعك الحقيقية من console.firebase.google.com
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "your-id",
-  appId: "your-app-id"
+  apiKey: "AIzaSyCY92Lcrj428lLTnAOlbdrAXgbslgO6F6k",
+  authDomain: "forexpro-66b56.firebaseapp.com",
+  projectId: "forexpro-66b56",
+  storageBucket: "forexpro-66b56.firebasestorage.app",
+  messagingSenderId: "1095701637247",
+  appId: "1:1095701637247:web:826686ab45f05045ae774a",
 };
 
 // التحقق مما إذا كانت الإعدادات حقيقية أم مجرد قيم افتراضية
