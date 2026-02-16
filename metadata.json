@@ -1,0 +1,7 @@
+{
+  "name": "ForexPro Manager",
+  "description": "A professional currency trading management system with inventory control, profit tracking, and detailed accounting reports.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
