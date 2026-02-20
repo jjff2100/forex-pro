@@ -23,6 +23,14 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type, transactions 
     (currencyFilter === 'ALL' || t.currency === currencyFilter)
   ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  // Calculate totals for the footer
+  const totals = filtered.reduce((acc, curr) => {
+    acc.quantity += curr.quantity;
+    acc.total += curr.total;
+    acc.profit += (curr.profit || 0);
+    return acc;
+  }, { quantity: 0, total: 0, profit: 0 });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -145,6 +153,35 @@ const TransactionsList: React.FC<TransactionsListProps> = ({ type, transactions 
                 ))
               )}
             </tbody>
+            {filtered.length > 0 && (
+              <tfoot className="bg-slate-100/80 border-t-2 border-slate-200">
+                <tr className="font-black text-slate-900">
+                  <td className="px-6 py-6 whitespace-nowrap text-lg" colSpan={type === 'sale' ? 4 : 3}>
+                    الإجمالي للمفلتر
+                  </td>
+                  <td className="px-6 py-6">
+                    <span className={`tabular-nums ${isLargeText ? 'text-2xl' : 'text-xl'}`}>
+                      {formatCurrency(totals.quantity)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-6"></td>
+                  {type === 'sale' && <td className="px-6 py-6"></td>}
+                  <td className="px-6 py-6">
+                    <span className={`text-indigo-800 tabular-nums ${isLargeText ? 'text-2xl' : 'text-xl'}`}>
+                      {formatCurrency(totals.total)}
+                    </span>
+                  </td>
+                  {type === 'sale' && (
+                    <td className="px-6 py-6">
+                      <span className={`text-emerald-800 tabular-nums bg-emerald-200/50 px-4 py-2 rounded-xl border border-emerald-300 shadow-sm inline-block ${isLargeText ? 'text-xl' : 'text-lg'}`}>
+                        {formatCurrency(totals.profit)}+
+                      </span>
+                    </td>
+                  )}
+                  <td className="px-6 py-6"></td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>

@@ -13,6 +13,7 @@ const Reports: React.FC<ReportsProps> = ({ transactions, suppliers }) => {
   const [activeReportTab, setActiveReportTab] = useState<'general' | 'supplier'>('general');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [selectedSupplier, setSelectedSupplier] = useState('');
+  const [isLargeText, setIsLargeText] = useState(false);
 
   // Quick range helper
   const setQuickRange = (range: 'today' | 'thisMonth' | 'lastMonth' | 'all') => {
@@ -76,11 +77,30 @@ const Reports: React.FC<ReportsProps> = ({ transactions, suppliers }) => {
     const pr = txs.filter(t => t.type === 'sale').reduce((sum, t) => sum + (t.profit || 0), 0);
     const qtyP = txs.filter(t => t.type === 'purchase').reduce((sum, t) => sum + t.quantity, 0);
     const qtyS = txs.filter(t => t.type === 'sale').reduce((sum, t) => sum + t.quantity, 0);
-    return { currency: curr, purchases: p, sales: s, profit: pr, qtyP, qtyS };
+    return { 
+      currency: curr, 
+      purchases: p, 
+      sales: s, 
+      profit: pr, 
+      qtyP, 
+      qtyS, 
+      qtyRemaining: qtyP - qtyS 
+    };
   }).filter(c => c.purchases > 0 || c.sales > 0);
 
+  // Totals for Summary Footer
+  const summaryTotals = currencyBreakdown.reduce((acc, curr) => {
+    acc.qtyP += curr.qtyP;
+    acc.purchases += curr.purchases;
+    acc.qtyS += curr.qtyS;
+    acc.sales += curr.sales;
+    acc.profit += curr.profit;
+    acc.qtyRemaining += curr.qtyRemaining;
+    return acc;
+  }, { qtyP: 0, purchases: 0, qtyS: 0, sales: 0, profit: 0, qtyRemaining: 0 });
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className={`space-y-6 animate-in fade-in duration-500 ${isLargeText ? 'text-lg' : ''}`}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex p-1 bg-slate-200 rounded-xl w-fit">
           <button 
@@ -184,30 +204,52 @@ const Reports: React.FC<ReportsProps> = ({ transactions, suppliers }) => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden group">
-              <i className="fas fa-hand-holding-dollar absolute -bottom-4 -left-4 text-8xl opacity-10 transition-transform group-hover:scale-110"></i>
-              <p className="text-white/70 text-sm font-bold uppercase tracking-wider">إجمالي {activeReportTab === 'supplier' ? 'المبيعات منه' : 'المبيعات'}</p>
-              <h4 className="text-2xl font-black mt-1">{formatCurrency(stats.sales)}</h4>
-              <p className="text-xs mt-2 text-white/50">{dateRange.start || dateRange.end ? 'الفترة المحددة' : 'كل الأوقات'}</p>
+          {/* Stats Cards with Large Font Toggle */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+             <div className="absolute -top-10 left-0">
+               <button 
+                 onClick={() => setIsLargeText(!isLargeText)}
+                 className={`text-[11px] font-bold transition-all px-2 py-1 rounded-md ${isLargeText ? 'text-indigo-600 bg-indigo-50 shadow-inner' : 'text-slate-400 hover:text-indigo-600'}`}
+               >
+                 {isLargeText ? 'تصغير الخط' : 'تكبير الخط بالكامل'}
+               </button>
+             </div>
+            
+            {/* Sales Card - Purple */}
+            <div className={`bg-gradient-to-br from-indigo-500 to-indigo-700 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden group transition-all`}>
+              <i className="fas fa-money-bill-wave absolute -bottom-4 -left-4 text-8xl opacity-10 transition-transform group-hover:scale-110"></i>
+              <div className="relative z-10 text-left">
+                 <p className="text-white/80 text-sm font-bold uppercase tracking-wider text-right">إجمالي {activeReportTab === 'supplier' ? 'المبيعات منه' : 'المبيعات'}</p>
+                 <h4 className={`font-black mt-2 text-right tracking-tight tabular-nums ${isLargeText ? 'text-4xl' : 'text-3xl'}`}>{formatCurrency(stats.sales)}</h4>
+                 <p className="text-[10px] mt-2 text-white/60 text-right">{dateRange.start || dateRange.end ? 'الفترة المحددة' : 'كل الأوقات'}</p>
+              </div>
             </div>
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden group">
+
+            {/* Profit Card - Green */}
+            <div className={`bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden group transition-all`}>
               <i className="fas fa-chart-line absolute -bottom-4 -left-4 text-8xl opacity-10 transition-transform group-hover:scale-110"></i>
-              <p className="text-white/70 text-sm font-bold uppercase tracking-wider">صافي الأرباح</p>
-              <h4 className="text-2xl font-black mt-1">{formatCurrency(stats.profit)}</h4>
-              <p className="text-xs mt-2 text-white/50">من العمليات المفلترة</p>
+              <div className="relative z-10 text-left">
+                 <p className="text-white/80 text-sm font-bold uppercase tracking-wider text-right">صافي الأرباح</p>
+                 <h4 className={`font-black mt-2 text-right tracking-tight tabular-nums ${isLargeText ? 'text-4xl' : 'text-3xl'}`}>{formatCurrency(stats.profit)}</h4>
+                 <p className="text-[10px] mt-2 text-white/60 text-right">من العمليات المفلترة</p>
+              </div>
             </div>
-            <div className="bg-gradient-to-br from-rose-500 to-rose-700 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden group">
+
+            {/* Purchases Card - Red */}
+            <div className={`bg-gradient-to-br from-rose-500 to-rose-600 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden group transition-all`}>
               <i className="fas fa-file-invoice-dollar absolute -bottom-4 -left-4 text-8xl opacity-10 transition-transform group-hover:scale-110"></i>
-              <p className="text-white/70 text-sm font-bold uppercase tracking-wider">إجمالي {activeReportTab === 'supplier' ? 'الاستلام منه' : 'المشتريات'}</p>
-              <h4 className="text-2xl font-black mt-1">{formatCurrency(stats.purchases)}</h4>
-              <p className="text-xs mt-2 text-white/50">تكلفة الاستلام</p>
+              <div className="relative z-10 text-left">
+                 <p className="text-white/80 text-sm font-bold uppercase tracking-wider text-right">إجمالي {activeReportTab === 'supplier' ? 'الاستلام منه' : 'المشتريات'}</p>
+                 <h4 className={`font-black mt-2 text-right tracking-tight tabular-nums ${isLargeText ? 'text-4xl' : 'text-3xl'}`}>{formatCurrency(stats.purchases)}</h4>
+                 <p className="text-[10px] mt-2 text-white/60 text-right">تكلفة الاستلام</p>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          {/* Summary Table */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-8">
             <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="font-extrabold text-slate-800">
+              <h3 className="font-extrabold text-slate-800 text-base">
                 {activeReportTab === 'supplier' ? `كشف حساب المورد: ${selectedSupplier}` : 'ملخص الأداء حسب العملة'}
               </h3>
               <span className="text-[10px] bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold">
@@ -215,8 +257,8 @@ const Reports: React.FC<ReportsProps> = ({ transactions, suppliers }) => {
               </span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-right">
-                <thead className="bg-white text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-50">
+              <table className="w-full text-right border-collapse">
+                <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-100">
                   <tr>
                     <th className="px-6 py-4">العملة</th>
                     <th className="px-6 py-4">الكمية المستلمة</th>
@@ -229,15 +271,17 @@ const Reports: React.FC<ReportsProps> = ({ transactions, suppliers }) => {
                 <tbody className="divide-y divide-slate-50">
                   {currencyBreakdown.map(c => (
                     <tr key={c.currency} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-5">
-                        <span className="font-black text-slate-800 text-lg">{c.currency}</span>
+                      <td className="px-6 py-6">
+                        <span className={`font-black text-slate-800 ${isLargeText ? 'text-xl' : 'text-lg'}`}>{c.currency}</span>
                       </td>
-                      <td className="px-6 py-5 text-slate-600 font-bold">{formatCurrency(c.qtyP)}</td>
-                      <td className="px-6 py-5 text-slate-600 font-medium text-xs">{formatCurrency(c.purchases)}</td>
-                      <td className="px-6 py-5 text-rose-600 font-bold">{formatCurrency(c.qtyS)}</td>
-                      <td className="px-6 py-5 text-slate-600 font-medium text-xs">{formatCurrency(c.sales)}</td>
-                      <td className="px-6 py-5 text-emerald-600 font-black bg-emerald-50/30">
-                        {formatCurrency(c.profit)}+
+                      <td className={`px-6 py-6 text-slate-600 font-bold tabular-nums ${isLargeText ? 'text-lg' : 'text-base'}`}>{formatCurrency(c.qtyP)}</td>
+                      <td className={`px-6 py-6 text-slate-400 font-medium tabular-nums ${isLargeText ? 'text-base' : 'text-[11px]'}`}>{formatCurrency(c.purchases)}</td>
+                      <td className={`px-6 py-6 text-rose-500 font-bold tabular-nums ${isLargeText ? 'text-lg' : 'text-base'}`}>{formatCurrency(c.qtyS)}</td>
+                      <td className={`px-6 py-6 text-slate-400 font-medium tabular-nums ${isLargeText ? 'text-base' : 'text-[11px]'}`}>{formatCurrency(c.sales)}</td>
+                      <td className="px-6 py-6">
+                         <span className={`text-emerald-600 font-black bg-emerald-50/50 px-3 py-1.5 rounded-lg border border-emerald-100 tabular-nums ${isLargeText ? 'text-xl' : 'text-lg'}`}>
+                          {formatCurrency(c.profit)}+
+                         </span>
                       </td>
                     </tr>
                   ))}
@@ -249,61 +293,85 @@ const Reports: React.FC<ReportsProps> = ({ transactions, suppliers }) => {
                     </tr>
                   )}
                 </tbody>
+                {currencyBreakdown.length > 0 && (
+                  <tfoot className="bg-slate-100/80 border-t-2 border-slate-200">
+                    <tr className="font-black text-slate-900">
+                      <td className="px-6 py-6">الإجمالي</td>
+                      <td className={`px-6 py-6 tabular-nums ${isLargeText ? 'text-xl' : 'text-lg'}`}>{formatCurrency(summaryTotals.qtyP)}</td>
+                      <td className={`px-6 py-6 tabular-nums ${isLargeText ? 'text-base' : 'text-[11px]'} text-slate-500`}>{formatCurrency(summaryTotals.purchases)}</td>
+                      <td className={`px-6 py-6 tabular-nums ${isLargeText ? 'text-xl' : 'text-lg'} text-rose-600`}>{formatCurrency(summaryTotals.qtyS)}</td>
+                      <td className={`px-6 py-6 tabular-nums ${isLargeText ? 'text-base' : 'text-[11px]'} text-slate-500`}>{formatCurrency(summaryTotals.sales)}</td>
+                      <td className="px-6 py-6">
+                         <span className={`text-emerald-800 font-black bg-emerald-200/40 px-3 py-1.5 rounded-lg border border-emerald-200 tabular-nums ${isLargeText ? 'text-xl' : 'text-lg'}`}>
+                          {formatCurrency(summaryTotals.profit)}+
+                         </span>
+                      </td>
+                    </tr>
+                    <tr className="bg-indigo-50/50 border-t border-slate-100">
+                      <td colSpan={3} className="px-6 py-4 text-indigo-700 font-black text-base">الكمية المتبقية (صافي):</td>
+                      <td colSpan={3} className="px-6 py-4">
+                        <span className={`text-indigo-900 font-black bg-white px-5 py-2 rounded-xl border-2 border-indigo-200 shadow-sm tabular-nums ${isLargeText ? 'text-2xl' : 'text-xl'}`}>
+                           {formatCurrency(summaryTotals.qtyRemaining)}+
+                        </span>
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </div>
 
           {activeReportTab === 'supplier' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-8">
               <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                <h3 className="font-extrabold text-slate-800">الحركة التفصيلية</h3>
+                <h3 className="font-extrabold text-slate-800 text-base">الحركة التفصيلية</h3>
                 <i className="fas fa-history text-slate-300"></i>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-right border-collapse table-auto">
                   <thead>
-                    <tr className="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase border-b border-slate-100">
-                      <th className="px-4 py-4">التاريخ</th>
-                      <th className="px-4 py-4">نوع العملية</th>
-                      <th className="px-4 py-4">البيان (الطرف الآخر)</th>
-                      <th className="px-4 py-4">العملة</th>
-                      <th className="px-4 py-4">الكمية</th>
-                      <th className="px-4 py-4">السعر</th>
-                      <th className="px-4 py-4 font-bold">الإجمالي</th>
+                    <tr className="bg-slate-50/80 text-slate-500 text-[10px] font-bold uppercase border-b border-slate-100">
+                      <th className="px-6 py-4">التاريخ</th>
+                      <th className="px-6 py-4">نوع العملية</th>
+                      <th className="px-6 py-4">البيان (الطرف الآخر)</th>
+                      <th className="px-6 py-4">العملة</th>
+                      <th className="px-6 py-4">الكمية</th>
+                      <th className="px-6 py-4">السعر</th>
+                      <th className="px-6 py-4 font-bold">الإجمالي</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filteredTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-slate-50/30 transition-colors">
-                        <td className="px-4 py-4 text-[11px] text-slate-500">
-                          <div className="font-bold">{new Date(tx.date).toLocaleDateString('ar-SA')}</div>
+                        <td className="px-6 py-5 whitespace-nowrap text-[10px] text-slate-500">
+                          <div className="font-bold text-slate-700">{new Date(tx.date).toLocaleDateString('ar-SA')}</div>
                           <div className="opacity-60">{new Date(tx.date).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</div>
                         </td>
-                        <td className="px-4 py-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${tx.type === 'purchase' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-indigo-600 bg-indigo-50 border-indigo-100'}`}>
+                        <td className="px-6 py-5">
+                          <span className={`px-4 py-1 rounded-full text-[10px] font-bold border ${tx.type === 'purchase' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-indigo-600 bg-indigo-50 border-indigo-100'}`}>
                             {tx.type === 'purchase' ? 'استلام من مورد' : 'بيع من مخزون المورد'}
                           </span>
                         </td>
-                        <td className="px-4 py-4 font-bold text-slate-700 text-xs">
+                        <td className={`px-6 py-5 font-bold text-slate-700 ${isLargeText ? 'text-base' : 'text-xs'}`}>
                           {tx.type === 'purchase' ? '-' : tx.partyName}
                         </td>
-                        <td className="px-4 py-4">
-                          <span className="font-black text-slate-600 text-xs">{tx.currency}</span>
+                        <td className="px-6 py-5">
+                          <span className={`font-black text-slate-500 ${isLargeText ? 'text-lg' : 'text-sm'}`}>{tx.currency}</span>
                         </td>
-                        <td className="px-4 py-4 font-bold text-slate-800 text-xs">
+                        <td className={`px-6 py-5 font-bold text-slate-900 tabular-nums ${isLargeText ? 'text-xl' : 'text-sm'}`}>
                           {formatCurrency(tx.quantity)}
                         </td>
-                        <td className="px-4 py-4 text-slate-600 text-[11px]">
+                        <td className={`px-6 py-5 text-slate-500 tabular-nums ${isLargeText ? 'text-lg' : 'text-[11px]'}`}>
                           {formatCurrency(tx.price)}
                         </td>
-                        <td className="px-4 py-4 font-bold text-slate-900 text-xs">
+                        <td className={`px-6 py-5 font-bold text-slate-900 tabular-nums ${isLargeText ? 'text-xl' : 'text-sm'}`}>
                           {formatCurrency(tx.total)}
                         </td>
                       </tr>
                     ))}
                     {filteredTransactions.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-4 py-10 text-center text-slate-400 font-medium">
+                        <td colSpan={7} className="px-6 py-10 text-center text-slate-400 font-medium">
                           لا توجد عمليات مسجلة في هذه الفترة
                         </td>
                       </tr>
